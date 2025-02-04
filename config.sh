@@ -72,6 +72,10 @@ declare -A UDEVRULES
 # * An example rule is just below.
 # UDEVRULES[20-something]='ACTION==\"add\", SUBSYSTEM==\"net\", ATTRS{idVendor}==\"7392\", ATTRS{idProduct}==\"7811\", NAME=\"extAP\"\n'
 
+# Enable or disable development mode
+# Set to "true" to enable development mode, "false" to disable develoment mode (enable production mode), and leave empty ("") to ignore
+DEVELOPMENT_MODE_ENABLE="true"
+
 # Whether or not restart the engine if the supervisor restart failed.
 FORCE_SUPERVISOR_RESTART="no"
 
@@ -179,11 +183,11 @@ deleteAllSshkeys() {
     echo "Deleting all sshKeys"
     local TEMPWORK
     TEMPWORK=$(tempwork)
-    jq "del(.os.sshKeys[])" "$WORKCONFIGFILE" > "$TEMPWORK" || finish_up "Could not delete all sshKeys"
-    if [[ "$(jq -e '.os.sshKeys[]' "${TEMPWORK}")" == "" ]] ; then
+    jq "del(.os.sshKeys)" "$WORKCONFIGFILE" > "$TEMPWORK" || finish_up "Could not delete all sshKeys"
+    if [[ "$(jq -e '.os.sshKeys' "${TEMPWORK}")" == null ]] ; then
         mv "${TEMPWORK}" "${WORKCONFIGFILE}" || finish_up "Failed to update working copy of config.json"
     else
-	finish_up "Could not delete all sshKeys"
+	    finish_up "Could not delete all sshKeys"
     fi
 }
 
@@ -333,6 +337,39 @@ udevrulesPostInsert() {
     fi
 }
 
+# Handling development mode
+developmentModeUpdate() {
+    echo "Updating development mode"
+    local TEMPWORK
+    TEMPWORK=$(tempwork)
+    case ${DEVELOPMENT_MODE_ENABLE} in
+        "true")
+            echo "Enabling development mode"
+            jq ".developmentMode = \"true\"" "$WORKCONFIGFILE" > "$TEMPWORK" || finish_up "Couldn't insert developmentMode value"
+            if [[ "$(jq -e ".developmentMode" "${TEMPWORK}")" != "\"true\"" ]] ; then
+                finish_up "Failed to insert developmentMode into config.json."
+            fi
+            mv "${TEMPWORK}" "${WORKCONFIGFILE}" || finish_up "Failed to update working copy of config.json"
+            ;;
+        "false")
+            echo "Disabling development mode"
+            jq "del(.developmentMode)" "$WORKCONFIGFILE" > "$TEMPWORK" || finish_up "Couldn't delete developmentMode"
+            # Did we manage to delete the developmentMode key?
+            if [[ "$(jq ".developmentMode" "${TEMPWORK}")" != null ]] ; then
+                finish_up "Failed to delete developmentMode from config.json."
+            fi
+            mv "${TEMPWORK}" "${WORKCONFIGFILE}" || finish_up "Failed to update working copy of config.json"
+            ;;
+        *)
+            echo "Invalid value set for DEVELOPMENT_MODE_ENABLE variable, ignoring"
+    esac
+}
+
+developmentModePostUpdate() {
+    echo "Running development mode post update tasks"
+    systemctl restart development-features || finish_up "Supervisor did not restart successfully."
+}
+
 ###
 # Task starts here
 ###
@@ -384,6 +421,10 @@ main() {
         DO_UDEVRULES="yes"
         anytask="yes"
     fi
+    if [[ "${DEVELOPMENT_MODE_ENABLE}" != "" ]]; then
+        DO_DEVELOPMENT_MODE="yes"
+        anytask="yes"
+    fi
 
     # If any tasks, create a working copy of the config.json otherwise bail
     if [[ "${anytask}" != "yes" ]]; then
@@ -428,6 +469,9 @@ main() {
     if [[ "${DO_UDEVRULES}" == "yes" ]]; then
         udevrulesInsert
     fi
+    if [[ "${DO_DEVELOPMENT_MODE}" == "yes" ]]; then
+        developmentModeUpdate
+    fi
 
     echo "Stopping supervisor before updating the original config.json"
     systemctl stop resin-supervisor || finish_up "Could not stop supervisor."
@@ -451,6 +495,9 @@ main() {
     fi
     if [[ "${DO_CONNECTIVITY}" == "yes" ]] || [[ "${DO_RANDOMMACADDRESSSCAN}" == "yes" ]]; then
         networkmanagerPostInsert
+    fi
+    if [[ "${DO_DEVELOPMENT_MODE}" == "yes" ]]; then
+        developmentModePostUpdate
     fi
 
     # Restart the supervisor
