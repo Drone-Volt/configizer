@@ -41,12 +41,12 @@ NTPSERVERS=""
 # Edit DOMAIN_UPDATE to set the domains to "balena-cloud.com" instead of "resin.io"
 # The accepted values are "true" and "false", anything else will be discarded
 # Example: DOMAIN_UPDATE="true"
-DOMAIN_UPDATE="true"
+DOMAIN_UPDATE=""
 
 # Edit CLOUDLINK_UPDATE to set the vpnEndpoint to "cloudlink" instead of "vpn"
 # The accepted values are "true" and "false", anything else will be discarded
 # Example: CLOUDLINK_UPDATE="true"
-CLOUDLINK_UPDATE="true"
+CLOUDLINK_UPDATE=""
 
 # Edit RANDOMMACADDRESSSCAN to set .os.network.wifi.randomMacAddressScan value
 # See more details at https://github.com/balena-os/meta-balena#wifi
@@ -74,7 +74,7 @@ declare -A UDEVRULES
 
 # Enable or disable development mode
 # Set to "true" to enable development mode, "false" to disable develoment mode (enable production mode), and leave empty ("") to ignore
-DEVELOPMENT_MODE_ENABLE="true"
+DEVELOPMENT_MODE_ENABLE=""
 
 # Whether or not restart the engine if the supervisor restart failed.
 FORCE_SUPERVISOR_RESTART="no"
