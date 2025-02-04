@@ -24,3 +24,11 @@ See the full list of the supported entries in the [meta-balena README][meta-bale
 [cli]: https://github.com/balena-io/balena-cli/ "balenaCLI"
 [supervisor]: https://github.com/balena-io/balena-supervisor "balena supervisor repository"
 [meta-balena readme]: https://github.com/balena-os/meta-balena#configjson "Supported config.json values in balenaOS"
+
+### DV utility scripts
+
+| Name | Function | Arguments |
+| ---- | -------- | --- |
+| `run-one-enable-development-mode.sh` | Configure balenaOS to development mode (passwordless ssh) | UUID |
+| `run-one-enable-production-mode.sh` | Configure balenaOS to production mode without touching ssh keys | UUID |
+| `run-one-enable-production-mode-with-sshkey.sh`| Configure balenaOS to production mode and set provided ssh key | UUID, ssh public key in file or argument |
